@@ -1,0 +1,46 @@
+### Introduced in GitLab 11.3
+stages:
+- execute_ansible_playbook
+# Execute Template.
+.execute_template:
+  image: danhnt/ansible:2.14.4
+  stage: execute_ansible_playbook
+  script:
+  - echo "Deploy using Ansible"
+  - ansible --version
+  - ansible-playbook --version
+  - ls ./
+  - echo "k8s-node99 ansible_host=142.250.66.46 ansible_port=16421 ansible_user=${ANSIBLE_USER} ansible_password=${ANSIBLE_PASSWORD} become_user=${ANSIBLE_USER}" >> ./host.ini
+  - ls ./
+  - cat ./host.ini
+  - ansible-playbook playbook.yml -i host.ini
+# Execute to Testing.
+execute_ansible_playbook_testing:
+  extends: .execute_template
+  stage: execute_ansible_playbook
+  tags:
+  - ci-shared
+  environment:
+    name: testing
+  only:
+  - development
+# Execute to Staging.
+execute_ansible_playbook_staging:
+  extends: .execute_template
+  stage: execute_ansible_playbook
+  tags:
+  - ci-shared
+  environment:
+    name: staging
+  only:
+  - master
+# Execute to Production.
+execute_ansible_playbook_production:
+  extends: .execute_template
+  stage: execute_ansible_playbook
+  tags:
+  - ci-shared
+  environment:
+    name: production
+  only:
+  - tags

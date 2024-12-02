@@ -1,0 +1,183 @@
+def label = "jenkin-slave${UUID.randomUUID().toString()}"
+cluster = 'ovh'
+JENKINS_URL = "${JENKINS_URL}"
+jenkinUrlIndexOf = JENKINS_URL.indexOf('local')
+
+if (jenkinUrlIndexOf > -1) {
+  cluster = 'local'
+}
+
+cloud = "kubernetes-${cluster}"
+serviceAccount = "sa-jenkins-${cluster}"
+
+podTemplate(
+  label: label,
+  cloud: cloud,
+  serviceAccount: serviceAccount,
+  containers: [
+    containerTemplate(name: 'jnlp', image: 'jenkins/jnlp-slave:4.13.3-1-jdk11', args: '${computer.jnlpmac} ${computer.name}'),
+    containerTemplate(name: 'docker', image: 'docker', command: 'cat', ttyEnabled: true),
+    containerTemplate(name: 'ansible', image: 'danhnt/ansible:2.14.4', command: 'cat', ttyEnabled: true)
+  ],
+  imagePullSecrets: ['k8s-registry'],
+  volumes: [
+    hostPathVolume(mountPath: '/var/run/docker.sock', hostPath: '/var/run/docker.sock')
+  ]
+)
+{
+  node(label){
+    // def appName = 'eca'
+    // def myRepo
+    // def gitBranchName
+    // def shortGitCommit
+    // def dockerImageName
+    // def dockerImageTag
+    // def dockerHub= 'danhnt'
+    // def dockerImagerepository
+    // def environment = ''
+    // def releaseName = ''
+    // def strRandom = UUID.randomUUID().toString()[0..4]
+
+    // stage('Checkout git') {
+    //   myRepo = checkout scm
+    //   //gitBranchName = myRepo.GIT_BRANCH.substring(myRepo.GIT_BRANCH.lastIndexOf('/')+1, myRepo.GIT_BRANCH.length())
+    //   gitBranchName = env.gitlabTargetBranch? env.gitlabTargetBranch: myRepo.GIT_BRANCH;
+    //   gitBranchName = gitBranchName.substring(gitBranchName.lastIndexOf('/')+1, gitBranchName.length())
+    //   shortGitCommit = "eca-${myRepo.GIT_COMMIT[0..10]}"
+
+    //   if((env.gitlabTargetBranch =~ /.+\/tags\/[0-9\.\-]+/) || (myRepo.GIT_BRANCH =~ /.+\/tags\/[0-9\.\-]+/)){
+    //     dockerImageName = appName
+    //     dockerImageTag = gitBranchName
+    //     environment = 'production'
+    //     releaseName = appName
+    //   } else if(gitBranchName=='master-ECA'){
+    //     dockerImageName = "${appName}-production"
+    //     dockerImageTag = "${shortGitCommit}-${strRandom}"
+    //     environment = 'production'
+    //     releaseName = "${appName}-production"
+    //   } else if(gitBranchName == 'develop-ECA' ){
+    //     dockerImageName = "${appName}-testing"
+    //     dockerImageTag = "${shortGitCommit}-${strRandom}"
+    //     environment = 'testing'
+    //     releaseName = "${appName}-testing"
+    //   } else {
+    //     environmentBranch = gitBranchName.substring(0,gitBranchName.lastIndexOf('_'))
+    //     gitBranchName = gitBranchName.substring(gitBranchName.lastIndexOf('_')+1, gitBranchName.length())
+    //     gitBranchNameFormat = gitBranchName
+    //     if (gitBranchName.length() > 20) {
+    //         gitBranchNameFormat = gitBranchName.replace("_", "-").toLowerCase().substring(0,20)
+    //     }
+
+    //     if(environmentBranch == 'tag') {
+    //         environment = 'production'
+    //     } else if(environmentBranch == 'master') {
+    //         environment = 'staging'
+    //     } else if(environmentBranch == 'development' ){
+    //         environment = 'testing'
+    //     } else {
+    //         environment = 'testing'
+    //     }
+    //     dockerImageName = "${appName}-${gitBranchNameFormat}-${environment}"
+    //     dockerImageTag = "${shortGitCommit}-${strRandom}"
+    //     releaseName = "${appName}-${gitBranchNameFormat}-${environment}"
+    //   }
+    //   dockerImagerepository = "${dockerHub}/${dockerImageName}"
+    //   echo "Working on branch ${myRepo.GIT_BRANCH} ...${env.gitlabTargetBranch}"
+    // }
+
+    // gitlabCommitStatus(name: "Build docker image"){
+    //   stage('Build docker image') {
+    //     container('docker') {
+    //       withCredentials([string(credentialsId: 'NPM_TOKEN', variable: 'SECRET')]) {
+    //         docker.withRegistry("", 'ynm_jenkins_registry') {
+    //           echo "Bulding docker images ..."
+    //           docker.build("${dockerImagerepository}:${dockerImageTag}","--no-cache --build-arg NPM_TOKEN=${SECRET} .")
+    //           echo "Pushing the image to docker hub ..."
+    //           def dockerImage = docker.image("${dockerImagerepository}:${dockerImageTag}")
+    //           //Push the container to the custom Registry
+    //           dockerImage.push()
+    //         }
+    //       }
+
+    //       echo "Push image ${dockerImageTag} to registry successfull"
+    //     }
+    //   }
+    // }
+
+    stage('Integration Test') {
+      container('ansible') {
+        checkout scm
+        withCredentials([usernamePassword(credentialsId: 'ansible_ssh_pc1', passwordVariable: 'ANSIBLE_PASSWORD', usernameVariable: 'ANSIBLE_USER')]) {
+          sh 'echo "pc1 ansible_host=192.168.1.106 ansible_user=${ANSIBLE_USER} ansible_password=${ANSIBLE_PASSWORD} ansible_port=22 become_user=${ANSIBLE_USER} forever=/home/administrator/.nvm/versions/node/v14.21.1/bin/forever" >> ./host.ini'
+        }
+        withCredentials([usernamePassword(credentialsId: 'ansible_ssh_pc2', passwordVariable: 'ANSIBLE_PASSWORD', usernameVariable: 'ANSIBLE_USER')]) {
+          sh 'echo "pc2 ansible_host=192.168.1.107 ansible_user=${ANSIBLE_USER} ansible_password=${ANSIBLE_PASSWORD} ansible_port=22 become_user=${ANSIBLE_USER} forever=/home/home/.nvm/versions/node/v14.21.2/bin/forever" >> ./host.ini'
+        }
+        withCredentials([usernamePassword(credentialsId: 'ansible_ssh_pc3', passwordVariable: 'ANSIBLE_PASSWORD', usernameVariable: 'ANSIBLE_USER')]) {
+          sh 'echo "pc3 ansible_host=192.168.1.112 ansible_user=${ANSIBLE_USER} ansible_password=${ANSIBLE_PASSWORD} ansible_port=22 become_user=${ANSIBLE_USER} forever=/home/cpu343/.nvm/versions/node/v14.20.1/bin/forever" >> ./host.ini'
+        }
+        sh '''
+            ansible --version
+            ansible-playbook --version
+            ansible-playbook playbook_deploy.yml -i host.ini
+        '''
+      }
+    }
+
+    stage("Deploy"){
+      // // stage("Deploy") {
+      // //     steps {
+      // //         echo 'Deploying...'
+      // //         sshPublisher(publishers:
+      // //         [sshPublisherDesc(
+      // //             configName: 'ansible_pc2',
+      // //             transfers: [
+      // //                 sshTransfer(
+      // //                     sourceFiles: 'playbook_deploy.yml, host.ini',
+      // //                     remoteDirectory: '/playbooks',
+      // //                     cleanRemote: false,
+      // //                     execCommand: 'cd playbooks/ && ansible-playbook playbook_deploy.yml -i host.ini',
+      // //                     execTimeout: 120000,
+      // //                 )
+      // //             ],
+      // //             usePromotionTimestamp: false,
+      // //             useWorkspaceInPromotion: false,
+      // //             verbose: false)
+      // //         ])
+      // //     }
+      // // }
+      // // stage('Deploy') {
+      // //   script{
+
+      // //     cleanWs()
+      // //     sh "echo 'hello' >> file.txt"
+
+      // //     echo 'Local files.....'
+      // //     sh 'ls -l'
+
+      // //     command='''
+      // //         cat ./file.txt
+      // //         ls -l
+      // //         date
+      // //         cat /etc/os-release
+      // //     '''
+
+
+      // //     // Copy file to remote server
+      // //     sshPublisher(publishers: [sshPublisherDesc(configName: 'ansible_pc2',
+      // //       transfers: [ sshTransfer(flatten: false,
+      // //                     remoteDirectory: './',
+      // //                     sourceFiles: 'file.txt'
+      // //       )])
+      // //     ])
+
+      // //     // Execute commands
+      // //     sshPublisher(publishers: [sshPublisherDesc(configName: 'ansible_pc2',
+      // //       transfers: [ sshTransfer(execCommand: command    )])])
+
+      // //   }
+      // // }
+      echo "SUCCESS ..."
+    }
+  }
+}

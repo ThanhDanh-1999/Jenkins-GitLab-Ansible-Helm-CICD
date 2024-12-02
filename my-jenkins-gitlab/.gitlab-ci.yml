@@ -1,0 +1,24 @@
+# Official language image. Look for the different tagged releases at:
+# https://hub.docker.com/r/library/python/tags/
+image: python:latest
+
+before_script:
+- python -V # Print out python version for debugging
+
+# The names and order of the pipeline stages
+stages:
+- build
+- test
+
+build-job-example:
+  stage: build
+  script:
+  - echo "Building the 'Hello World' app"
+  - cat hello.py
+
+test-job-example:
+  stage: test
+  script:
+  - echo "Testing the 'Hello World' app"
+  - echo "Running 'Hello World' app"
+  - python hello.py

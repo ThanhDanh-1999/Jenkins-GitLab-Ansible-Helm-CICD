@@ -1,0 +1,97 @@
+image: docker:latest
+services:
+- docker:dind
+
+stages:
+- build
+- deploy
+variables:
+  APP_NAME: my-app-gitlabci
+
+# Template to the docker build/push image
+.job_build_template: &build_definition
+  stage: build
+  tags:
+  - ci-shared
+  before_script:
+  - docker login -u ${CI_REGISTRY_USER} -p ${CI_REGISTRY_PASSWORD}
+  script:
+  - docker build -t ${REPO_DOCKERHUB}:${CONTAINER_TAG} --build-arg APP_ENV=${CI_ENVIRONMENT_SLUG} .
+  - docker tag ${REPO_DOCKERHUB}:${CONTAINER_TAG} ${REPO_DOCKERHUB}:${CONTAINER_TAG}
+  - docker push ${REPO_DOCKERHUB}:${CONTAINER_TAG}
+
+# Template to deploy K8S
+.job_deploy_template: &deploy_definition
+  stage: deploy
+  image: alpine/helm:3.8.2
+  tags:
+  - ci-shared
+  script:
+  - helm upgrade ${RELEASE_NAME} ./k8s/${APP_NAME} --install --set image.repository=${REPO_DOCKERHUB} --set image.tag=${CONTAINER_TAG} --set ingress.featureName=${RELEASE_NAME} --namespace sl-${CI_ENVIRONMENT_SLUG} --kubeconfig ${KUBE_CONFIG}
+# Execute to build/push image
+build_to_testing:
+  <<: *build_definition
+  environment:
+    name: testing
+  variables:
+    CONTAINER_TAG: ${CI_COMMIT_SHORT_SHA}
+    REPO_DOCKERHUB: danhnt/${APP_NAME}-${CI_ENVIRONMENT_SLUG}
+  only:
+  - development
+
+build_to_staging:
+  <<: *build_definition
+  environment:
+    name: staging
+  variables:
+    CONTAINER_TAG: ${CI_COMMIT_SHORT_SHA}
+    REPO_DOCKERHUB: danhnt/${APP_NAME}-${CI_ENVIRONMENT_SLUG}
+  only:
+  - master
+
+build_to_production:
+  <<: *build_definition
+  environment:
+    name: production
+  variables:
+    CONTAINER_TAG: ${CI_COMMIT_REF_NAME}
+    REPO_DOCKERHUB: danhnt/${APP_NAME}
+  only:
+  - tags
+
+# Execute to deploy K8S
+deploy_to_testing:
+  <<: *deploy_definition
+  environment:
+    name: testing
+  variables:
+    CONTAINER_TAG: ${CI_COMMIT_SHORT_SHA}
+    REPO_DOCKERHUB: danhnt/${APP_NAME}-${CI_ENVIRONMENT_SLUG}
+    RELEASE_NAME: ${APP_NAME}-${CI_ENVIRONMENT_SLUG}
+    KUBE_CONFIG: ${K8S_CLUSTER_LOCAL}
+  only:
+  - development
+
+deploy_to_staging:
+  <<: *deploy_definition
+  environment:
+    name: staging
+  variables:
+    CONTAINER_TAG: ${CI_COMMIT_SHORT_SHA}
+    REPO_DOCKERHUB: danhnt/${APP_NAME}-${CI_ENVIRONMENT_SLUG}
+    RELEASE_NAME: ${APP_NAME}-${CI_ENVIRONMENT_SLUG}
+    KUBE_CONFIG: ${K8S_CLUSTER_OVH}
+  only:
+  - master
+
+deploy_to_production:
+  <<: *deploy_definition
+  environment:
+    name: production
+  variables:
+    CONTAINER_TAG: ${CI_COMMIT_REF_NAME}
+    REPO_DOCKERHUB: danhnt/${APP_NAME}
+    RELEASE_NAME: ${APP_NAME}
+    KUBE_CONFIG: ${K8S_CLUSTER_OVH}
+  only:
+  - tags

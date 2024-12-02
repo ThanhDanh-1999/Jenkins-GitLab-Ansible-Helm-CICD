@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "my-app-gitlabci.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "my-app-gitlabci.name" . }}
+    helm.sh/chart: {{ include "my-app-gitlabci.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  # annotations:
+  #   external-dns.alpha.kubernetes.io/hostname: app-eca-tool-testing.datatrend.io
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: {{ include "my-app-gitlabci.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}

@@ -1,0 +1,56 @@
+# Default values for my-app-gitlabci.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+environment: testing
+
+replicaCount: 1
+
+image:
+  repository: danhnt/my-app-gitlabci-testing
+  tag: stable
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: LoadBalancer # LoadBalancer deploy to EKS
+  # type: ClusterIP
+  port: 80
+
+persistence:
+  enabled: false
+cluster: "ovh"
+ingress:
+  enabled: false # # turn off deploy to EKS
+  annotations:
+    kubernetes.io/ingress.class: kong
+  #hosts:
+  #  - host: my-app-gitlabci.example.com
+  paths: [ '/' ]
+  hostProduction:
+  - my-app-gitlabci.example.com
+  hostTesting:
+  - my-app-gitlabci-testing.datatrend.io
+  hostStaging:
+  - my-app-gitlabci-staging.example.com
+  featureName: my-app-gitlabci-***
+
+resources: {}
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  # limits:
+  #  cpu: 100m
+  #  memory: 128Mi
+  # requests:
+  #  cpu: 100m
+  #  memory: 128Mi
+
+nodeSelector: {} # node-type: "app" # not select worker-node deploy to EKS
+
+tolerations: []
+
+affinity: {}

@@ -1,0 +1,50 @@
+pipeline {
+
+  environment {
+    dockerimagename = "danhnt/nodeapp"
+    dockerImage = ""
+  }
+
+  agent any
+
+  stages {
+
+    stage('Checkout Source') {
+      steps {
+        git url: 'https://git.example.com/danhnt/my_jenkins_kubernetes.git',
+            credentialsId: 'gitlab_ci'
+      }
+    }
+
+    stage('Build image') {
+      steps{
+        script {
+          dockerImage = docker.build dockerimagename
+        }
+      }
+    }
+
+    stage('Pushing Image') {
+      environment {
+               registryCredential = 'dockerlogin'
+           }
+      steps{
+        script {
+          docker.withRegistry( 'https://registry.hub.docker.com', registryCredential ) {
+            dockerImage.push("v1")
+          }
+        }
+      }
+    }
+
+    stage('Deploying App to Kubernetes') {
+      steps {
+        script {
+          kubernetesDeploy(configs: "deploymentservice.yaml", kubeconfigId: "kubernetes")
+        }
+      }
+    }
+
+  }
+
+}

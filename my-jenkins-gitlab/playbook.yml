@@ -1,0 +1,9 @@
+---
+- hosts: all
+  become: True
+  become_user: "{{ become_user }}"
+  tasks:
+  - name: Test ping
+    ping:
+    register: output
+  - debug: var=output.stdout_lines

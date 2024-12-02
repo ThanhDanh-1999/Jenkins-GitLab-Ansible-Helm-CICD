@@ -1,0 +1,19 @@
+{
+  "name": "nodeapp",
+  "version": "1.0.0",
+  "description": "nodeapp for CICD",
+  "main": "index.js",
+  "dependencies": {
+    "express": "^4.18.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "npm -v"
+  },
+  "repository": {
+    "type": "git",
+    "url": "ssh://git@git.example.com:10022/danhnt/my_jenkins_kubernetes.git"
+  },
+  "author": "danhnt",
+  "license": "ISC"
+}

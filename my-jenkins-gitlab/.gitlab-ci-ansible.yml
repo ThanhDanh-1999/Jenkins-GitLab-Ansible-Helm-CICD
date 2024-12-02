@@ -1,0 +1,59 @@
+stages:
+- execute_ansible_playbook
+# Execute to Testing.
+execute_ansible_playbook_testing:
+  stage: execute_ansible_playbook
+  image: danhnt/ansible:2.14.4
+  tags:
+  - ci-shared
+  environment:
+    name: testing
+  only:
+  - development
+  script:
+  - echo "Deploy using Ansible"
+  - ansible --version
+  - ansible-playbook --version
+  - ls ./
+  - echo "k8s-node99 ansible_host=142.250.66.46 ansible_port=16421 ansible_user=${ANSIBLE_USER} ansible_password=${ANSIBLE_PASSWORD} become_user=${ANSIBLE_USER}" >> ./host.ini
+  - ls ./
+  - cat ./host.ini
+  - ansible-playbook playbook.yml -i host.ini
+# Execute to Staging.
+execute_ansible_playbook_staging:
+  stage: execute_ansible_playbook
+  image: danhnt/ansible:2.14.4
+  tags:
+  - ci-shared
+  environment:
+    name: staging
+  only:
+  - master
+  script:
+  - echo "Deploy using Ansible"
+  - ansible --version
+  - ansible-playbook --version
+  - ls ./
+  - echo "k8s-node99 ansible_host=142.250.66.46 ansible_port=16421 ansible_user=${ANSIBLE_USER} ansible_password=${ANSIBLE_PASSWORD} become_user=${ANSIBLE_USER}" >> ./host.ini
+  - ls ./
+  - cat ./host.ini
+  - ansible-playbook playbook.yml -i host.ini
+# Execute to Production.
+execute_ansible_playbook_production:
+  stage: execute_ansible_playbook
+  image: danhnt/ansible:2.14.4
+  tags:
+  - ci-shared
+  environment:
+    name: production
+  only:
+  - tags
+  script:
+  - echo "Deploy using Ansible"
+  - ansible --version
+  - ansible-playbook --version
+  - ls ./
+  - echo "k8s-node99 ansible_host=142.250.66.46 ansible_port=16421 ansible_user=${ANSIBLE_USER} ansible_password=${ANSIBLE_PASSWORD} become_user=${ANSIBLE_USER}" >> ./host.ini
+  - ls ./
+  - cat ./host.ini
+  - ansible-playbook playbook.yml -i host.ini
